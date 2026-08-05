@@ -60,8 +60,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: user.name,
             image: user.image,
             role: user.role,
-            mfaEnabled: user.mfaEnabled,
-            mfaSetupPending: !user.mfaEnabled && (user.role === "ADMIN" || user.role === "SECRETARY"),
           };
         } catch (e) {
           console.error("Erro no authorize:", e);

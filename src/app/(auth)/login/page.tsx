@@ -11,8 +11,7 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
 
-  const [form, setForm] = useState({ email: "", password: "", mfaToken: "" });
-  const [showMfa, setShowMfa] = useState(false);
+  const [form, setForm] = useState({ email: "", password: "" });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -26,28 +25,14 @@ function LoginContent() {
     const verifyRes = await fetch("/api/auth/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: form.email, password: form.password, mfaToken: form.mfaToken || undefined }),
+      body: JSON.stringify({ email: form.email, password: form.password }),
     });
     const verifyData = await verifyRes.json();
 
     if (verifyData.error) {
-      if (verifyData.error === "MFA_REQUIRED") {
-        setShowMfa(true);
-        setError("Digite o código do seu aplicativo autenticador.");
-        setLoading(false);
-        return;
-      } else if (verifyData.error === "MFA_SETUP_REQUIRED") {
-        router.push("/mfa/setup?email=" + encodeURIComponent(form.email));
-        return;
-      } else if (verifyData.error === "MFA_INVALID") {
-        setError("Código MFA inválido ou expirado.");
-        setLoading(false);
-        return;
-      } else {
-        setError("Email ou senha incorretos. Tente novamente.");
-        setLoading(false);
-        return;
-      }
+      setError("Email ou senha incorretos. Tente novamente.");
+      setLoading(false);
+      return;
     }
 
     // Etapa 2: cria sessão via NextAuth
@@ -185,25 +170,8 @@ function LoginContent() {
               </label>
             </div>
             <input
-              type="text"
-              className="input-premium"
-              placeholder="000000"
-              value={form.mfaToken}
-              onChange={(e) => setForm({ ...form, mfaToken: e.target.value.replace(/\D/g, "").slice(0, 6) })}
-              maxLength={6}
-              pattern="[0-9]{6}"
-              inputMode="numeric"
-              style={{ textAlign: "center", fontSize: "1.3rem", letterSpacing: "0.3em", fontWeight: 700 }}
-              autoFocus
-            />
-            <p style={{ fontSize: "0.75rem", color: "#64748B", marginTop: 8 }}>
-              Abra o Google Authenticator ou Authy e insira o código de 6 dígitos.
-            </p>
-          </div>
-        )}
-
         {/* Erro */}
-        {error && !showMfa && (
+        {error && (
           <div className="animate-fade-up" style={{
             background: "rgba(220, 38, 38, 0.08)",
             border: "1px solid rgba(220, 38, 38, 0.25)",
@@ -228,11 +196,6 @@ function LoginContent() {
             <>
               <Loader2 size={18} style={{ animation: "spin 0.8s linear infinite" }} />
               Entrando...
-            </>
-          ) : showMfa ? (
-            <>
-              <Shield size={18} />
-              Verificar Código MFA
             </>
           ) : (
             "Entrar no Sistema"

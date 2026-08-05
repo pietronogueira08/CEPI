@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "WRONG_PASSWORD" }, { status: 401 });
     }
 
-    // Verificação MFA
+    // MFA removido temporariamente para demonstração
+    /*
     if (requiresMfa(user.role)) {
       if (!user.mfaEnabled) {
         return NextResponse.json({ error: "MFA_SETUP_REQUIRED" }, { status: 200 });
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "MFA_INVALID" }, { status: 401 });
       }
     }
+    */
 
     // Credenciais OK — cliente pode chamar signIn()
     return NextResponse.json({ ok: true });
