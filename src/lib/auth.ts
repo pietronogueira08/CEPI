@@ -4,13 +4,11 @@ import { prisma } from "@/lib/db";
 import { compare } from "bcryptjs";
 import { verifyMfaToken, requiresMfa } from "@/lib/mfa";
 
-class CustomAuthError extends CredentialsSignin {
-  code: string;
-  constructor(code: string) {
-    super();
-    this.code = code;
-  }
-}
+class MFA_REQUIRED extends CredentialsSignin {}
+class MFA_SETUP_REQUIRED extends CredentialsSignin {}
+class CREDENTIALS_INVALID extends CredentialsSignin {}
+class USER_NOT_FOUND extends CredentialsSignin {}
+class DATABASE_ERROR extends CredentialsSignin {}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "cepi-super-secret-key-change-in-production-2024",
@@ -48,55 +46,63 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         mfaToken: { label: "Código MFA", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new CustomAuthError("Email e senha são obrigatórios");
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        });
-
-        if (!user || !user.active) {
-          throw new CustomAuthError("Usuário não encontrado ou inativo");
-        }
-
-        const passwordValid = await compare(
-          credentials.password as string,
-          user.passwordHash
-        );
-
-        if (!passwordValid) {
-          throw new CustomAuthError("Senha incorreta");
-        }
-
-        // Verificação MFA para ADMIN e SECRETARY
-        if (requiresMfa(user.role)) {
-          if (user.mfaEnabled) {
-            if (!credentials.mfaToken) {
-              throw new CustomAuthError("MFA_REQUIRED");
-            }
-            const mfaValid = verifyMfaToken(
-              credentials.mfaToken as string,
-              user.mfaSecret!
-            );
-            if (!mfaValid) {
-              throw new CustomAuthError("Código MFA inválido ou expirado");
-            }
-          } else {
-            // MFA não configurado ainda — precisa configurar
-            throw new CustomAuthError("MFA_SETUP_REQUIRED");
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            throw new CREDENTIALS_INVALID();
           }
-        }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-          role: user.role,
-          mfaEnabled: user.mfaEnabled,
-          mfaVerified: requiresMfa(user.role) ? true : true,
-        };
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email as string },
+          });
+
+          if (!user || !user.active) {
+            throw new USER_NOT_FOUND();
+          }
+
+          const passwordValid = await compare(
+            credentials.password as string,
+            user.passwordHash
+          );
+
+          if (!passwordValid) {
+            throw new CREDENTIALS_INVALID();
+          }
+
+          // Verificação MFA para ADMIN e SECRETARY
+          if (requiresMfa(user.role)) {
+            if (user.mfaEnabled) {
+              if (!credentials.mfaToken) {
+                throw new MFA_REQUIRED();
+              }
+              const mfaValid = verifyMfaToken(
+                credentials.mfaToken as string,
+                user.mfaSecret!
+              );
+              if (!mfaValid) {
+                throw new CREDENTIALS_INVALID();
+              }
+            } else {
+              // MFA não configurado ainda — precisa configurar
+              throw new MFA_SETUP_REQUIRED();
+            }
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            role: user.role,
+            mfaEnabled: user.mfaEnabled,
+            mfaVerified: requiresMfa(user.role) ? true : true,
+          };
+        } catch (e: any) {
+          if (e instanceof CredentialsSignin) {
+            throw e; // Pass specific NextAuth classes forward
+          }
+          console.error("Erro interno no authorize:", e);
+          throw new DATABASE_ERROR(); // Any other error (like Prisma connection failure)
+        }
       },
     }),
   ],

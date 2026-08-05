@@ -35,8 +35,14 @@ function LoginContent() {
         setError("Digite o código do seu aplicativo autenticador.");
       } else if (result.error === "MFA_SETUP_REQUIRED") {
         router.push("/mfa/setup?email=" + encodeURIComponent(form.email));
+      } else if (result.error === "CREDENTIALS_INVALID") {
+        setError("Email ou senha incorretos.");
+      } else if (result.error === "USER_NOT_FOUND") {
+        setError("Usuário não encontrado ou inativo.");
+      } else if (result.error === "DATABASE_ERROR") {
+        setError("Erro ao conectar no banco de dados demonstrativo.");
       } else {
-        setError(result.error || "Credenciais inválidas. Tente novamente.");
+        setError(result.error === "CredentialsSignin" ? "Credenciais inválidas. Tente novamente." : result.error);
       }
     } else {
       router.push(callbackUrl);
