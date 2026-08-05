@@ -1,6 +1,6 @@
-import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 // Rotas que qualquer usuário autenticado pode acessar
 const PUBLIC_ROUTES = ["/login", "/mfa", "/api/auth"];
@@ -23,29 +23,27 @@ const ROLE_DEFAULT_ROUTES: Record<string, string> = {
   STUDENT: "/student",
 };
 
-export default auth((req: NextRequest & { auth: any }) => {
+export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Permite rotas públicas
   const isPublic = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
   if (isPublic) return NextResponse.next();
 
-  // Usuário não autenticado
-  if (!req.auth) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || "cepi-super-secret-key-change-in-production-2024" });
+
+  if (!token) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  const role = (req.auth.user as any)?.role;
+  const role = token.role as string;
 
-  // Raiz → redireciona para dashboard correto
   if (pathname === "/") {
     const dashboardUrl = ROLE_DEFAULT_ROUTES[role] || "/login";
     return NextResponse.redirect(new URL(dashboardUrl, req.url));
   }
 
-  // Verifica se o usuário tem permissão para acessar a rota
   const allowedRoutes = ROLE_ROUTES[role] || [];
   const hasAccess = allowedRoutes.some((route) => pathname.startsWith(route));
 
@@ -55,7 +53,7 @@ export default auth((req: NextRequest & { auth: any }) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [

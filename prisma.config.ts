@@ -1,20 +1,25 @@
 import path from "node:path";
 import { defineConfig } from "prisma/config";
 
-const dbPath = `file:${path.join(process.cwd(), "prisma", "dev.db")}`;
+// Auto-detecta ambiente: Turso (prod) ou SQLite local (dev)
+const tursoUrl = process.env.TURSO_DATABASE_URL;
+const tursoToken = process.env.TURSO_AUTH_TOKEN;
+const localUrl = `file:${path.join(process.cwd(), "prisma", "dev.db")}`;
+
+const dbUrl = tursoUrl ?? localUrl;
+const authToken = tursoToken;
 
 export default defineConfig({
-  earlyAccess: true,
   schema: path.join("prisma", "schema.prisma"),
   datasource: {
-    url: dbPath,
+    url: dbUrl,
   },
   migrate: {
     async adapter() {
       const { PrismaLibSql } = await import("@prisma/adapter-libsql");
-      const { createClient } = await import("@libsql/client");
-      const client = createClient({ url: dbPath });
-      return new PrismaLibSql(client);
+      const config: { url: string; authToken?: string } = { url: dbUrl };
+      if (authToken) config.authToken = authToken;
+      return new PrismaLibSql(config);
     },
   },
 });

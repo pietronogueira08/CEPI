@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Shield, CheckCircle, Copy, Loader2 } from "lucide-react";
 import Image from "next/image";
 
-export default function MfaSetupPage() {
+function MfaSetupContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const email = searchParams.get("email") || "";
@@ -254,5 +254,13 @@ export default function MfaSetupPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function MfaSetupPage() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: "center", padding: 60 }}><Loader2 size={40} className="animate-spin" color="#1E3A5F" /></div>}>
+      <MfaSetupContent />
+    </Suspense>
   );
 }
