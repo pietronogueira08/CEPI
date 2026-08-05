@@ -1,10 +1,19 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db";
 import { compare } from "bcryptjs";
 import { verifyMfaToken, requiresMfa } from "@/lib/mfa";
 
+class CustomAuthError extends CredentialsSignin {
+  code: string;
+  constructor(code: string) {
+    super();
+    this.code = code;
+  }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "cepi-super-secret-key-change-in-production-2024",
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
@@ -40,7 +49,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email e senha são obrigatórios");
+          throw new CustomAuthError("Email e senha são obrigatórios");
         }
 
         const user = await prisma.user.findUnique({
@@ -48,7 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (!user || !user.active) {
-          throw new Error("Usuário não encontrado ou inativo");
+          throw new CustomAuthError("Usuário não encontrado ou inativo");
         }
 
         const passwordValid = await compare(
@@ -57,25 +66,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
 
         if (!passwordValid) {
-          throw new Error("Senha incorreta");
+          throw new CustomAuthError("Senha incorreta");
         }
 
         // Verificação MFA para ADMIN e SECRETARY
         if (requiresMfa(user.role)) {
           if (user.mfaEnabled) {
             if (!credentials.mfaToken) {
-              throw new Error("MFA_REQUIRED");
+              throw new CustomAuthError("MFA_REQUIRED");
             }
             const mfaValid = verifyMfaToken(
               credentials.mfaToken as string,
               user.mfaSecret!
             );
             if (!mfaValid) {
-              throw new Error("Código MFA inválido ou expirado");
+              throw new CustomAuthError("Código MFA inválido ou expirado");
             }
           } else {
             // MFA não configurado ainda — precisa configurar
-            throw new Error("MFA_SETUP_REQUIRED");
+            throw new CustomAuthError("MFA_SETUP_REQUIRED");
           }
         }
 

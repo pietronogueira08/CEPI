@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Necessário para o Prisma funcionar corretamente no Vercel
   serverExternalPackages: ["@prisma/client", "@prisma/adapter-libsql"],
+  outputFileTracingIncludes: {
+    "/**/*": ["./prisma/dev.db"],
+  },
 
   eslint: {
     ignoreDuringBuilds: true,
