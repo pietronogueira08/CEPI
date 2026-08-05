@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 // Rotas que qualquer usuário autenticado pode acessar
-const PUBLIC_ROUTES = ["/login", "/mfa", "/api/auth"];
+const PUBLIC_ROUTES = ["/login", "/mfa", "/api/auth", "/api/debug"];
 
 // Mapeamento de rotas por role
 const ROLE_ROUTES: Record<string, string[]> = {
