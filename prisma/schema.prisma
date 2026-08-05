@@ -1,0 +1,391 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ==============================
+// ENUMS
+// ==============================
+
+enum Role {
+  ADMIN
+  SECRETARY
+  TEACHER
+  PARENT
+  STUDENT
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  JUSTIFIED
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  URGENT
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  FUTURE_CHATBOT
+}
+
+// ==============================
+// USUÁRIOS E PERFIS
+// ==============================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String
+  role          Role      @default(STUDENT)
+  phone         String?
+  cpf           String?   @unique
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // MFA — obrigatório para ADMIN e SECRETARY
+  mfaEnabled  Boolean   @default(false)
+  mfaSecret   String?
+  mfaVerified Boolean   @default(false)
+
+  // Relações de perfil
+  teacherProfile  TeacherProfile?
+  studentProfile  StudentProfile?
+  parentProfile   ParentProfile?
+
+  // Auth sessions
+  sessions  Session[]
+  accounts  Account[]
+  mfaTokens MfaToken[]
+
+  // Notificações
+  sentNotifications     Notification[] @relation("NotificationSender")
+  receivedNotifications UserNotification[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model MfaToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ==============================
+// PERFIS ESPECÍFICOS
+// ==============================
+
+model TeacherProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  registration String   @unique
+  department   String?
+  createdAt    DateTime @default(now())
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classes ClassTeacher[]
+  grades  Grade[]
+  attendances Attendance[]
+}
+
+model StudentProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  registration   String   @unique
+  birthDate      DateTime?
+  bloodType      String?
+  medicalNotes   String?
+  createdAt      DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+  grades      Grade[]
+  attendances Attendance[]
+  invoices    Invoice[]
+  parents     StudentParent[]
+}
+
+model ParentProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  children StudentParent[]
+}
+
+model StudentParent {
+  studentId       String
+  parentId        String
+  relationship    String   @default("Responsável")
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent  ParentProfile  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, parentId])
+}
+
+// ==============================
+// ESTRUTURA ACADÊMICA
+// ==============================
+
+model School {
+  id        String   @id @default(cuid())
+  name      String   @default("Centro Educacional Pequena Isa")
+  slug      String   @default("cepi")
+  city      String   @default("Grussaí")
+  state     String   @default("RJ")
+  address   String?
+  phone     String?
+  email     String?
+  logoUrl   String?
+  createdAt DateTime @default(now())
+
+  classes Class[]
+}
+
+model AcademicYear {
+  id        String   @id @default(cuid())
+  year      Int      @unique
+  startDate DateTime
+  endDate   DateTime
+  active    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  classes Class[]
+}
+
+model Class {
+  id             String   @id @default(cuid())
+  name           String
+  grade          String   // Ex: "1º Ano", "2º Ano"
+  shift          String   @default("Manhã") // Manhã, Tarde, Noite
+  schoolId       String
+  academicYearId String
+  maxStudents    Int      @default(30)
+  createdAt      DateTime @default(now())
+
+  school       School       @relation(fields: [schoolId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  teachers     ClassTeacher[]
+  enrollments  Enrollment[]
+  subjects     Subject[]
+
+  @@index([schoolId])
+  @@index([academicYearId])
+}
+
+model ClassTeacher {
+  classId   String
+  teacherId String
+
+  class   Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@id([classId, teacherId])
+}
+
+model Subject {
+  id          String   @id @default(cuid())
+  name        String
+  code        String
+  classId     String
+  workload    Int      @default(0) // horas aula
+  createdAt   DateTime @default(now())
+
+  class       Class      @relation(fields: [classId], references: [id], onDelete: Cascade)
+  grades      Grade[]
+  attendances Attendance[]
+
+  @@unique([classId, code])
+}
+
+// ==============================
+// MATRÍCULA
+// ==============================
+
+model Enrollment {
+  id          String   @id @default(cuid())
+  studentId   String
+  classId     String
+  status      String   @default("ACTIVE") // ACTIVE, CANCELLED, TRANSFERRED
+  enrolledAt  DateTime @default(now())
+  cancelledAt DateTime?
+  notes       String?
+
+  student StudentProfile @relation(fields: [studentId], references: [id])
+  class   Class          @relation(fields: [classId], references: [id])
+
+  @@unique([studentId, classId])
+  @@index([studentId])
+  @@index([classId])
+}
+
+// ==============================
+// NOTAS E FREQUÊNCIA
+// ==============================
+
+model Grade {
+  id          String   @id @default(cuid())
+  studentId   String
+  subjectId   String
+  teacherId   String
+  period      String   // "1º Bimestre", "2º Bimestre", etc.
+  value       Float    // 0.0 a 10.0
+  type        String   @default("BIMESTRAL") // BIMESTRAL, RECUPERACAO, FINAL
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id])
+  subject Subject        @relation(fields: [subjectId], references: [id])
+  teacher TeacherProfile @relation(fields: [teacherId], references: [id])
+
+  @@index([studentId])
+  @@index([subjectId])
+  @@index([teacherId])
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  studentId String
+  subjectId String
+  teacherId String
+  date      DateTime
+  status    AttendanceStatus @default(PRESENT)
+  notes     String?
+  createdAt DateTime         @default(now())
+
+  student StudentProfile @relation(fields: [studentId], references: [id])
+  subject Subject        @relation(fields: [subjectId], references: [id])
+  teacher TeacherProfile @relation(fields: [teacherId], references: [id])
+
+  @@unique([studentId, subjectId, date])
+  @@index([studentId])
+  @@index([date])
+}
+
+// ==============================
+// FINANCEIRO (BOLETOS)
+// ==============================
+
+model Invoice {
+  id            String        @id @default(cuid())
+  studentId     String
+  description   String
+  amount        Float
+  dueDate       DateTime
+  paidAt        DateTime?
+  status        InvoiceStatus @default(PENDING)
+  month         Int           // 1-12
+  year          Int
+  barCode       String?       // linha digitável
+  pixCode       String?
+  receiptUrl    String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+// ==============================
+// NOTIFICAÇÕES (MODULAR — Pronto para IA)
+// ==============================
+
+model Notification {
+  id        String              @id @default(cuid())
+  senderId  String?
+  title     String
+  message   String
+  type      NotificationType    @default(INFO)
+  channel   NotificationChannel @default(IN_APP)
+  metadata  String?             // JSON serializado para dados extras (futuro chatbot)
+  createdAt DateTime            @default(now())
+
+  sender    User?              @relation("NotificationSender", fields: [senderId], references: [id])
+  recipients UserNotification[]
+
+  @@index([createdAt])
+}
+
+model UserNotification {
+  id             String   @id @default(cuid())
+  userId         String
+  notificationId String
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationId])
+  @@index([userId])
+}
