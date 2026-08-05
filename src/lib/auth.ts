@@ -4,11 +4,11 @@ import { prisma } from "@/lib/db";
 import { compare } from "bcryptjs";
 import { verifyMfaToken, requiresMfa } from "@/lib/mfa";
 
-class MFA_REQUIRED extends CredentialsSignin {}
-class MFA_SETUP_REQUIRED extends CredentialsSignin {}
-class CREDENTIALS_INVALID extends CredentialsSignin {}
-class USER_NOT_FOUND extends CredentialsSignin {}
-class DATABASE_ERROR extends CredentialsSignin {}
+class MFA_REQUIRED extends CredentialsSignin { code = "MFA_REQUIRED"; }
+class MFA_SETUP_REQUIRED extends CredentialsSignin { code = "MFA_SETUP_REQUIRED"; }
+class CREDENTIALS_INVALID extends CredentialsSignin { code = "CREDENTIALS_INVALID"; }
+class USER_NOT_FOUND extends CredentialsSignin { code = "USER_NOT_FOUND"; }
+class DATABASE_ERROR extends CredentialsSignin { code = "DATABASE_ERROR"; }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "cepi-super-secret-key-change-in-production-2024",
