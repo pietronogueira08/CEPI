@@ -22,6 +22,35 @@ function LoginContent() {
     setLoading(true);
     setError("");
 
+    // Etapa 1: verificar via API própria para obter erros claros
+    const verifyRes = await fetch("/api/auth/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: form.email, password: form.password, mfaToken: form.mfaToken || undefined }),
+    });
+    const verifyData = await verifyRes.json();
+
+    if (verifyData.error) {
+      if (verifyData.error === "MFA_REQUIRED") {
+        setShowMfa(true);
+        setError("Digite o código do seu aplicativo autenticador.");
+        setLoading(false);
+        return;
+      } else if (verifyData.error === "MFA_SETUP_REQUIRED") {
+        router.push("/mfa/setup?email=" + encodeURIComponent(form.email));
+        return;
+      } else if (verifyData.error === "MFA_INVALID") {
+        setError("Código MFA inválido ou expirado.");
+        setLoading(false);
+        return;
+      } else {
+        setError("Email ou senha incorretos. Tente novamente.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Etapa 2: cria sessão via NextAuth
     const result = await signIn("credentials", {
       email: form.email,
       password: form.password,
@@ -29,7 +58,7 @@ function LoginContent() {
     });
 
     if (!result || result.error) {
-      setError("Email ou senha incorretos. Tente novamente.");
+      setError("Erro ao criar sessão. Tente novamente.");
     } else {
       router.push(callbackUrl);
       router.refresh();
