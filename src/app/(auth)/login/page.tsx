@@ -151,25 +151,6 @@ function LoginContent() {
           </div>
         </div>
 
-        {/* MFA Token (aparece condicionalmente) */}
-        {showMfa && (
-          <div className="animate-fade-up" style={{
-            background: "rgba(30, 58, 95, 0.05)",
-            border: "1px solid rgba(30, 58, 95, 0.15)",
-            borderRadius: 12,
-            padding: 16,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <Shield size={16} color="#1E3A5F" />
-              <label style={{
-                fontSize: "0.82rem",
-                fontWeight: 600,
-                color: "#1E3A5F",
-              }}>
-                Código MFA (6 dígitos)
-              </label>
-            </div>
-            <input
         {/* Erro */}
         {error && (
           <div className="animate-fade-up" style={{
