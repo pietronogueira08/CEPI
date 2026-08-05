@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Shield, GraduationCap, Loader2 } from "lucide-react";
+import Image from "next/image";
 
 function LoginContent() {
   const router = useRouter();
@@ -50,17 +51,19 @@ function LoginContent() {
       {/* Logo */}
       <div style={{ textAlign: "center", marginBottom: 32 }}>
         <div style={{
-          width: 64,
-          height: 64,
-          borderRadius: 18,
-          background: "linear-gradient(135deg, #1E3A5F 0%, #2D5287 100%)",
+          width: 80,
+          height: 80,
+          borderRadius: 20,
+          background: "white",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           margin: "0 auto 16px",
-          boxShadow: "0 8px 24px rgba(30,58,95,0.35)",
+          boxShadow: "0 8px 24px rgba(30,58,95,0.15)",
+          overflow: "hidden",
+          padding: 8
         }}>
-          <GraduationCap size={32} color="white" />
+          <Image src="/logo.png" alt="CEPI Logo" width={64} height={64} style={{ objectFit: "contain" }} />
         </div>
         <h1 style={{
           fontSize: "1.6rem",

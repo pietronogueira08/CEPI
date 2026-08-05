@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
@@ -82,16 +83,17 @@ export function Sidebar({ role, userName, userInitials }: SidebarProps) {
       <div className="sidebar-logo">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{
-            width: 40,
-            height: 40,
+            width: 48,
+            height: 48,
             borderRadius: 12,
-            background: "rgba(244, 196, 48, 0.2)",
+            background: "white",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
+            overflow: "hidden"
           }}>
-            <GraduationCap size={22} color="#F4C430" />
+            <Image src="/logo.png" alt="CEPI Logo" width={40} height={40} style={{ objectFit: "contain" }} />
           </div>
           <div>
             <div className="cepi-logo-text">CEPI</div>
@@ -200,7 +202,7 @@ export function Sidebar({ role, userName, userInitials }: SidebarProps) {
         boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <GraduationCap size={22} color="#F4C430" />
+          <Image src="/logo.png" alt="CEPI Logo" width={32} height={32} style={{ background: "white", borderRadius: 8, padding: 2 }} />
           <span className="cepi-logo-text" style={{ fontSize: "1.1rem" }}>CEPI</span>
         </div>
         <button
