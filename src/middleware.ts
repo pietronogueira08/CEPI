@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth.config";
+
+const { auth } = NextAuth(authConfig);
 
 // Rotas que qualquer usuário autenticado pode acessar
 const PUBLIC_ROUTES = ["/login", "/mfa", "/api/auth", "/api/debug"];
@@ -23,21 +25,21 @@ const ROLE_DEFAULT_ROUTES: Record<string, string> = {
   STUDENT: "/student",
 };
 
-export default async function middleware(req: NextRequest) {
+export default auth((req) => {
   const { pathname } = req.nextUrl;
-
+  
   const isPublic = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
   if (isPublic) return NextResponse.next();
 
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "cepi-super-secret-key-change-in-production-2024" });
+  const token = req.auth; // req.auth é populado pelo wrapper auth() do NextAuth v5
 
-  if (!token) {
+  if (!token || !token.user) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  const role = token.role as string;
+  const role = (token.user as any).role as string;
 
   if (pathname === "/") {
     const dashboardUrl = ROLE_DEFAULT_ROUTES[role] || "/login";
@@ -53,7 +55,7 @@ export default async function middleware(req: NextRequest) {
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [

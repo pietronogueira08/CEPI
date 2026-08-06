@@ -2,34 +2,10 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db";
 import { compare } from "bcryptjs";
+import { authConfig } from "./auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? "cepi-super-secret-key-change-in-production-2024",
-  session: { strategy: "jwt" },
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = (user as any).role;
-        token.mfaEnabled = (user as any).mfaEnabled;
-        token.mfaSetupPending = (user as any).mfaSetupPending;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        (session.user as any).role = token.role;
-        (session.user as any).mfaEnabled = token.mfaEnabled;
-        (session.user as any).mfaSetupPending = token.mfaSetupPending;
-      }
-      return session;
-    },
-  },
+  ...authConfig,
   providers: [
     Credentials({
       name: "credentials",
@@ -69,4 +45,3 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
 });
-
