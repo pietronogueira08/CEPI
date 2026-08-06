@@ -34,6 +34,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: "/admin/notas", label: "Notas", icon: FileText },
     { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
     { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
+    { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
   ],
   SECRETARY: [
     { href: "/secretary", label: "Dashboard", icon: LayoutDashboard },
@@ -154,14 +155,6 @@ export function Sidebar({ role, userName, userInitials }: SidebarProps) {
         padding: "12px",
         borderTop: "1px solid rgba(255,255,255,0.1)",
       }}>
-        <Link
-          href="/configuracoes"
-          className="sidebar-nav-item"
-          style={{ marginBottom: 2 }}
-        >
-          <Settings size={18} />
-          Configurações
-        </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="sidebar-nav-item"

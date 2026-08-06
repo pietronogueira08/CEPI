@@ -9,8 +9,8 @@ const PUBLIC_ROUTES = ["/login", "/mfa", "/api/auth", "/api/debug"];
 
 // Mapeamento de rotas por role
 const ROLE_ROUTES: Record<string, string[]> = {
-  ADMIN: ["/admin", "/secretary", "/teacher", "/parent", "/student"],
-  SECRETARY: ["/secretary", "/student"],
+  ADMIN: ["/admin"],
+  SECRETARY: ["/secretary"],
   TEACHER: ["/teacher"],
   PARENT: ["/parent"],
   STUDENT: ["/student"],

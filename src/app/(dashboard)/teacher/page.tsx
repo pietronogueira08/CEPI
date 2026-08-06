@@ -1,78 +1,42 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
-import { BookOpen, ClipboardList, FileText, UserCheck } from "lucide-react";
-import type { Metadata } from "next";
+import { auth } from "@/lib/auth"
+import { redirect } from "next/navigation"
+import prisma from "@/lib/db"
+import { Metadata } from "next"
+import { BookOpen, Users, Calendar } from "lucide-react"
 
-export const metadata: Metadata = { title: "Dashboard — Professor" };
+export const metadata: Metadata = { title: "Dashboard Professor | CEPI" }
 
 export default async function TeacherDashboard() {
-  const session = await auth();
-  if (!session || (session.user as any).role !== "TEACHER") redirect("/login");
+  const session = await auth()
+  if (!session) redirect("/login")
 
-  const teacherProfile = await prisma.teacherProfile.findFirst({
+  const teacher = await prisma.teacherProfile.findFirst({ 
     where: { userId: session.user.id },
-    include: {
-      classes: { include: { class: { include: { enrollments: { where: { status: "ACTIVE" } } } } } },
-    },
-  });
+    include: { classes: { include: { class: { include: { enrollments: { include: { student: { include: { user: true } } } } } } } } }
+  })
+  
+  if (!teacher) return <div>Perfil não encontrado</div>
 
-  const classes = teacherProfile?.classes.map((ct) => ct.class) || [];
-  const totalStudents = classes.reduce((acc, c) => acc + c.enrollments.length, 0);
+  const totalClasses = teacher.classes.length
+  const totalStudents = teacher.classes.reduce((acc, tc) => acc + tc.class.enrollments.length, 0)
 
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <div className="page-header">
-        <h1 className="page-title">Olá, {session.user.name?.split(" ")[0]}!</h1>
-        <p className="page-subtitle">Painel do Professor · {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</p>
+        <h1 className="page-title" style={{ fontSize: "1.5rem", fontWeight: 700, color: "#1E3A5F" }}>Bem-vindo(a), Professor(a)</h1>
+        <p className="page-subtitle" style={{ color: "#64748B" }}>{new Date().toLocaleDateString("pt-BR", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
       </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 14, marginBottom: 24 }}>
-        {[
-          { label: "Minhas Turmas", value: classes.length, icon: BookOpen, color: "#1E3A5F", bg: "rgba(30,58,95,0.08)" },
-          { label: "Alunos", value: totalStudents, icon: UserCheck, color: "#2D7D46", bg: "rgba(45,125,70,0.08)" },
-        ].map((s, i) => {
-          const Icon = s.icon;
-          return (
-            <div key={i} style={{ background: "white", borderRadius: 12, padding: 20, border: "1px solid #E2E8F0" }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-                <Icon size={18} color={s.color} />
-              </div>
-              <p style={{ fontSize: "1.6rem", fontWeight: 800, color: "#0F172A", letterSpacing: "-0.04em" }}>{s.value}</p>
-              <p style={{ fontSize: "0.75rem", color: "#64748B", marginTop: 2 }}>{s.label}</p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Quick actions */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        {[
-          { label: "Diário de Classe", desc: "Lançar notas e frequência", icon: ClipboardList, href: "/teacher/diario" },
-          { label: "Minhas Turmas", desc: "Ver alunos matriculados", icon: BookOpen, href: "/teacher/turmas" },
-          { label: "Notas", desc: "Relatório de notas", icon: FileText, href: "/teacher/notas" },
-          { label: "Frequência", desc: "Controle de presença", icon: UserCheck, href: "/teacher/frequencia" },
-        ].map((action, i) => {
-          const Icon = action.icon;
-          return (
-            <a key={i} href={action.href} style={{
-              background: "white",
-              borderRadius: 12,
-              padding: 20,
-              border: "1px solid #E2E8F0",
-              textDecoration: "none",
-              display: "block",
-              transition: "all 0.2s ease",
-            }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(30,58,95,0.08)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-                <Icon size={20} color="#1E3A5F" />
-              </div>
-              <p style={{ fontWeight: 700, color: "#0F172A", fontSize: "0.9rem", marginBottom: 4 }}>{action.label}</p>
-              <p style={{ fontSize: "0.75rem", color: "#64748B" }}>{action.desc}</p>
-            </a>
-          );
-        })}
+      
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px" }}>
+        <div style={{ background: "white", borderRadius: 14, padding: "20px 24px", border: "1px solid #E2E8F0", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "#2D528715", display: "flex", alignItems: "center", justifyContent: "center", color: "#2D5287" }}><BookOpen size={24} /></div>
+          <div><p style={{ fontSize: "0.88rem", color: "#64748B", fontWeight: 500 }}>Minhas Turmas</p><h3 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#1E293B", margin: 0 }}>{totalClasses}</h3></div>
+        </div>
+        <div style={{ background: "white", borderRadius: 14, padding: "20px 24px", border: "1px solid #E2E8F0", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "#2D7D4615", display: "flex", alignItems: "center", justifyContent: "center", color: "#2D7D46" }}><Users size={24} /></div>
+          <div><p style={{ fontSize: "0.88rem", color: "#64748B", fontWeight: 500 }}>Total de Alunos</p><h3 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#1E293B", margin: 0 }}>{totalStudents}</h3></div>
+        </div>
       </div>
     </div>
-  );
+  )
 }
