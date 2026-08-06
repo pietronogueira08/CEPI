@@ -29,7 +29,7 @@ export default async function middleware(req: NextRequest) {
   const isPublic = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
   if (isPublic) return NextResponse.next();
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || "cepi-super-secret-key-change-in-production-2024" });
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "cepi-super-secret-key-change-in-production-2024" });
 
   if (!token) {
     const loginUrl = new URL("/login", req.url);
